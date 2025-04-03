@@ -22,10 +22,30 @@ jobs:
       - name: Install dependencies
         run: npm install
       
+      - name: Check for build script
+        id: check_build
+        run: |
+          if grep -q '"build"' package.json; then
+            echo "HAS_BUILD=true" >> $GITHUB_OUTPUT
+          else
+            echo "HAS_BUILD=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Build
+        if: steps.check_build.outputs.HAS_BUILD == 'true'
         run: npm run build
-        
+      
+      - name: Check for test script
+        id: check_test
+        run: |
+          if grep -q '"test"' package.json; then
+            echo "HAS_TEST=true" >> $GITHUB_OUTPUT
+          else
+            echo "HAS_TEST=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Test
+        if: steps.check_test.outputs.HAS_TEST == 'true'
         run: npm test
       
       - name: Setup Git User
@@ -36,9 +56,6 @@ jobs:
       - name: Determine Version Bump
         id: version
         run: |
-          # Install standard-version to handle conventional commits
-          npm install -g standard-version
-          
           # Get latest commit message
           COMMIT_MSG=$(git log -1 --pretty=format:%s)
           
