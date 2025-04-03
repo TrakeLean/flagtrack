@@ -1,0 +1,87 @@
+const fs = require('fs-extra');
+const path = require('path');
+const Conf = require('conf');
+const YAML = require('yaml');
+const { findRepoRoot } = require('./gitHelpers');
+
+// Create a config store for flagtrack
+const configStore = new Conf({
+  projectName: 'flagtrack',
+  defaults: {}
+});
+
+/**
+ * Create a new CTF config object
+ * @param {Object} options
+ * @param {string} options.ctfName The name of the CTF
+ * @param {Object} options.categories Key-value pairs of category numbers and names
+ * @param {string|null} options.parentDir Optional parent directory for CTF challenges
+ * @returns {Object} The config object
+ */
+function createConfig({ ctfName, categories, parentDir }) {
+  return {
+    ctfName,
+    categories,
+    parentDir,
+    createdAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Save configuration to both the config store and a local file
+ * @param {Object} config The configuration object
+ * @returns {Promise<boolean>} True if saved successfully
+ */
+async function saveConfig(config) {
+  try {
+    // Save to config store for global access
+    configStore.set('currentConfig', config);
+    
+    // Save to local file for project-specific access
+    const repoRoot = await findRepoRoot();
+    if (repoRoot) {
+      const configDir = path.join(repoRoot, '.flagtrack');
+      await fs.ensureDir(configDir);
+      
+      // Save as YAML for better readability
+      const yamlConfig = YAML.stringify(config);
+      await fs.writeFile(path.join(configDir, 'config.yml'), yamlConfig, 'utf-8');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving config:', error);
+    return false;
+  }
+}
+
+/**
+ * Load configuration from both local file and config store
+ * @returns {Promise<Object|null>} The configuration object or null if not found
+ */
+async function loadConfig() {
+  try {
+    // Try to load from local file first
+    const repoRoot = await findRepoRoot();
+    if (repoRoot) {
+      const localConfigPath = path.join(repoRoot, '.flagtrack', 'config.yml');
+      
+      if (await fs.pathExists(localConfigPath)) {
+        const yamlContent = await fs.readFile(localConfigPath, 'utf-8');
+        return YAML.parse(yamlContent);
+      }
+    }
+    
+    // Fall back to config store
+    return configStore.get('currentConfig');
+  } catch (error) {
+    console.error('Error loading config:', error);
+    return null;
+  }
+}
+
+module.exports = {
+  createConfig,
+  saveConfig,
+  loadConfig
+};
