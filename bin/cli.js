@@ -4,6 +4,7 @@ const { program } = require('commander');
 const setup = require('../src/commands/setup');
 const create = require('../src/commands/create');
 const solve = require('../src/commands/solve');
+const leaderboard = require('../src/commands/leaderboard');
 const updateReadme = require('../src/commands/updateReadme');
 const packageInfo = require('../package.json');
 
@@ -26,6 +27,11 @@ program
   .command('solve')
   .description('Check or set flag for completed task')
   .action(solve);
+
+program
+  .command('leaderboard')
+  .description('Generate a leaderboard of challenge solvers')
+  .action(leaderboard);
 
 program
   .command('update')
