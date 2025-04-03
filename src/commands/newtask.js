@@ -80,8 +80,8 @@ async function createTaskStructure(ctfRoot, category, taskName, taskNum, config)
   await fs.ensureDir(categoryFolder);
   
   const taskSlug = slugify(taskName);
-  const taskFolderName = `${String(taskNum).padStart(2, '0')}_${taskSlug}`;
-  const taskFolder = path.join(categoryFolder, taskFolderName);
+  let taskFolderName = `${String(taskNum).padStart(2, '0')}_${taskSlug}`;
+  let taskFolder = path.join(categoryFolder, taskFolderName);
   
   // Check if we're in a git repo and create branch if appropriate
   let branchCreated = false;
@@ -92,21 +92,14 @@ async function createTaskStructure(ctfRoot, category, taskName, taskNum, config)
     }
   }
   
-  // Check if task folder already exists
+  // Check if task folder already exists and handle automatically
   if (await fs.pathExists(taskFolder)) {
-    const { confirm } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirm',
-        message: `Task folder '${taskFolderName}' already exists in ${category}. Continue anyway?`,
-        default: false
-      }
-    ]);
-    
-    if (!confirm) {
-      console.log(chalk.red('❌ Task creation cancelled.'));
-      process.exit(1);
-    }
+    console.log(chalk.yellow(`⚠️ Task folder '${taskFolderName}' already exists in ${category}.`));
+    // Generate a unique folder name by appending a timestamp
+    const timestamp = Math.floor(Date.now() / 1000).toString().slice(-6);
+    taskFolderName = `${String(taskNum).padStart(2, '0')}_${taskSlug}_${timestamp}`;
+    taskFolder = path.join(categoryFolder, taskFolderName);
+    console.log(chalk.blue(`Creating task with unique name: ${taskFolderName}`));
   }
   
   // Create folder structure
@@ -166,25 +159,38 @@ _Interesting techniques, things you learned, or anything to remember for next ti
   
   console.log(chalk.green(`\n✅ Created task at: ${taskFolder}`));
   
-  // Prompt for git add if we're in a git repo and created a branch
+  // Automatically handle git workflow if branch was created
   if (branchCreated) {
-    const { confirmAdd } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirmAdd',
-        message: 'Do you want to add the newly created files to git?',
-        default: true
-      }
-    ]);
-    
-    if (confirmAdd) {
+    try {
+      const git = simpleGit();
+      
+      // Add all files in the task folder
+      console.log(chalk.blue('📋 Adding files to git...'));
+      await git.add(taskFolder);
+      
+      // Commit with a default message
+      const commitMessage = `Add task: ${taskName}`;
+      console.log(chalk.blue(`💾 Committing with message: "${commitMessage}"...`));
+      await git.commit(commitMessage);
+      
+      // Check if there's a remote repository
       try {
-        const git = simpleGit();
-        await git.add(taskFolder);
-        console.log(chalk.green(`✅ Added files to git staging area. Use 'git commit -m "your message"' to commit them.`));
-      } catch (error) {
-        console.log(chalk.red(`❌ Git add failed: ${error.message}`));
+        const remotes = await git.getRemotes();
+        if (remotes && remotes.length > 0) {
+          // Push branch to remote with upstream tracking
+          const branchName = await getCurrentBranch();
+          console.log(chalk.blue(`🚀 Publishing branch "${branchName}" to remote...`));
+          await git.push('origin', branchName, ['--set-upstream']);
+          console.log(chalk.green(`✅ Branch published and ready to work on!`));
+        } else {
+          console.log(chalk.yellow('⚠️ No remote repository found. Branch created locally only.'));
+        }
+      } catch (remoteError) {
+        console.log(chalk.yellow(`⚠️ Could not access git remotes: ${remoteError.message}`));
       }
+    } catch (error) {
+      console.log(chalk.red(`❌ Git operation failed: ${error.message}`));
+      console.log(chalk.yellow('The task was created but could not be published to git.'));
     }
   }
 }
@@ -210,28 +216,23 @@ async function createAndCheckoutBranch(category, taskNum, taskSlug) {
     const branchExists = branchSummary.all.includes(branchName);
     
     if (branchExists) {
-      const { confirm } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'confirm',
-          message: `Branch '${branchName}' already exists. Checkout to this branch anyway?`,
-          default: false
-        }
-      ]);
-      
-      if (!confirm) {
-        console.log(chalk.red('❌ Branch checkout cancelled.'));
-        return false;
-      }
+      console.log(chalk.yellow(`⚠️ Branch '${branchName}' already exists. Creating a unique branch instead.`));
+      // Create a unique branch name by appending timestamp
+      const timestamp = Math.floor(Date.now() / 1000).toString().slice(-6);
+      const uniqueBranchName = `${branchName}-${timestamp}`;
+      await git.branch([uniqueBranchName]);
+      await git.checkout(uniqueBranchName);
+      console.log(chalk.green(`✅ Created and switched to new branch: ${uniqueBranchName}`));
     } else {
       // Create new branch
       await git.branch([branchName]);
       console.log(chalk.green(`✅ Created new branch: ${branchName}`));
+      
+      // Checkout to branch
+      await git.checkout(branchName);
+      console.log(chalk.green(`✅ Switched to branch: ${branchName}`));
     }
     
-    // Checkout to branch
-    await git.checkout(branchName);
-    console.log(chalk.green(`✅ Switched to branch: ${branchName}`));
     return true;
     
   } catch (error) {
