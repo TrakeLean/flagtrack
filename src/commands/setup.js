@@ -17,12 +17,12 @@ async function setup() {
   
   try {
     // Get CTF details from user
-    const answers = await inquirer.prompt([
+    const mainAnswers = await inquirer.prompt([
       {
         type: 'input',
-        name: 'ctfName',
-        message: 'CTF Name:',
-        validate: input => input.trim() ? true : 'CTF name is required'
+        name: 'mainCtfName',
+        message: 'Main CTF Name (e.g., Cyberlandslaget):',
+        validate: input => input.trim() ? true : 'Main CTF name is required'
       },
       {
         type: 'confirm',
@@ -31,37 +31,79 @@ async function setup() {
         default: true
       },
       {
-        type: 'checkbox',
-        name: 'categories',
-        message: 'Select categories for this CTF:',
-        choices: [
-          { name: 'Crypto', checked: true },
-          { name: 'Forensics', checked: true },
-          { name: 'Misc', checked: true },
-          { name: 'Pwn', checked: true },
-          { name: 'Rev', checked: true },
-          { name: 'Web', checked: true },
-          { name: 'OSINT', checked: false },
-          { name: 'Steganography', checked: false }
-        ],
-        validate: input => input.length > 0 ? true : 'Please select at least one category'
-      },
-      {
         type: 'input',
         name: 'parentDir',
         message: 'Parent directory for CTF challenges (optional):',
         default: ''
+      },
+      {
+        type: 'confirm',
+        name: 'hasSubEvents',
+        message: 'Does this CTF have multiple events/rounds (e.g., Qualification, Finals)?',
+        default: true
       }
     ]);
     
+    let ctfStructure = {};
+    
+    if (mainAnswers.hasSubEvents) {
+      // Get sub-events
+      const subEventsAnswers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'subEvents',
+          message: 'Enter sub-events/rounds (comma-separated, e.g., "Qualification, Semi Final, Final"):',
+          validate: input => input.trim() ? true : 'At least one sub-event is required',
+          filter: input => input.split(',').map(item => item.trim()).filter(item => item)
+        }
+      ]);
+      
+      // For each sub-event, prompt for challenge categories
+      for (const subEvent of subEventsAnswers.subEvents) {
+        const subEventAnswers = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'categories',
+            message: `Enter challenge categories for "${subEvent}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
+            validate: input => input.trim() ? true : 'At least one category is required',
+            filter: input => input.split(',').map(item => item.trim()).filter(item => item)
+          }
+        ]);
+        
+        // Add to structure
+        ctfStructure[subEvent] = {
+          categories: subEventAnswers.categories.reduce((obj, cat, index) => {
+            obj[index + 1] = cat;
+            return obj;
+          }, {})
+        };
+      }
+    } else {
+      // Just get categories for the main CTF
+      const categoriesAnswer = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'categories',
+          message: 'Enter challenge categories (comma-separated, e.g., "Web, Crypto, Forensics"):',
+          validate: input => input.trim() ? true : 'At least one category is required',
+          filter: input => input.split(',').map(item => item.trim()).filter(item => item)
+        }
+      ]);
+      
+      // Add to structure
+      ctfStructure = {
+        categories: categoriesAnswer.categories.reduce((obj, cat, index) => {
+          obj[index + 1] = cat;
+          return obj;
+        }, {})
+      };
+    }
+    
     // Create config object
     const ctfConfig = createConfig({
-      ctfName: answers.ctfName,
-      categories: answers.categories.reduce((obj, cat, index) => {
-        obj[index + 1] = cat;
-        return obj;
-      }, {}),
-      parentDir: answers.parentDir || null
+      ctfName: mainAnswers.mainCtfName,
+      structure: ctfStructure,
+      parentDir: mainAnswers.parentDir || null
     });
     
     // Save the config
@@ -69,7 +111,7 @@ async function setup() {
     console.log(chalk.green('✅ Configuration saved'));
     
     // Set up GitHub Actions if requested
-    if (answers.setupGithubActions) {
+    if (mainAnswers.setupGithubActions) {
       const repoRoot = await findRepoRoot();
       if (repoRoot) {
         await createGitHubActions(repoRoot);
@@ -79,7 +121,7 @@ async function setup() {
       }
     }
     
-    console.log(chalk.blue('\n🏁 Setup complete! Run `flagtrack newtask` to create your first task.'));
+    console.log(chalk.blue('\n🏁 Setup complete! Run `flagtrack create` to create your first task.'));
     
   } catch (error) {
     console.error(chalk.red('❌ Setup failed:'), error.message);
