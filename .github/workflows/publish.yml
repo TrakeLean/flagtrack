@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+# Add this permissions block
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -35,17 +40,7 @@ jobs:
         if: steps.check_build.outputs.HAS_BUILD == 'true'
         run: npm run build
       
-      - name: Check for test script
-        id: check_test
-        run: |
-          if grep -q '"test"' package.json; then
-            echo "HAS_TEST=true" >> $GITHUB_OUTPUT
-          else
-            echo "HAS_TEST=false" >> $GITHUB_OUTPUT
-          fi
-      
       - name: Test
-        if: steps.check_test.outputs.HAS_TEST == 'true'
         run: npm test
       
       - name: Setup Git User
@@ -80,6 +75,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
       - name: Push Version Update
-        run: git push --follow-tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push --follow-tags
