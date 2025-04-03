@@ -3,6 +3,7 @@
 const { program } = require('commander');
 const setup = require('../src/commands/setup');
 const newtask = require('../src/commands/newtask');
+const endtask = require('../src/commands/endtask');
 const updateReadme = require('../src/commands/updateReadme');
 const packageInfo = require('../package.json');
 
@@ -20,6 +21,11 @@ program
   .command('newtask')
   .description('Create a new CTF challenge task')
   .action(newtask);
+
+program
+  .command('endtask')
+  .description('Check or set flag for completed task')
+  .action(endtask);
 
 program
   .command('update')
