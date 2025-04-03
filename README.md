@@ -102,8 +102,9 @@ CTF_Name/
 ├── 01_Crypto/
 │   ├── 01_challenge_name/
 │   │   ├── writeup.md       # Challenge writeup
-│   │   ├── files/           # Challenge files
-│   │   ├── exploit/         # Solution files
+│   │   ├── challenge_files/ # Original challenge files
+│   │   ├── workspace/       # Playground for experiments and tests
+│   │   ├── exploit/         # Final solution files
 │   │   ├── screenshots/     # Visual evidence
 │   │   └── notes.txt        # Working notes
 │   └── ...
