@@ -80,8 +80,31 @@ async function loadConfig() {
   }
 }
 
+/**
+ * Check if configuration exists in the current project
+ * @returns {Promise<boolean>} True if config exists, false otherwise
+ */
+
+async function configExists() {
+  try {
+    // Try to find a local config file
+    const repoRoot = await findRepoRoot();
+    if (repoRoot) {
+      const localConfigPath = path.join(repoRoot, '.flagtrack', 'config.yml');
+      return await fs.pathExists(localConfigPath);
+    }
+    
+    // If no local config, check the config store
+    return configStore.has('currentConfig');
+  } catch (error) {
+    console.error('Error checking config existence:', error);
+    return false;
+  }
+}
+
 module.exports = {
   createConfig,
   saveConfig,
-  loadConfig
+  loadConfig,
+  configExists
 };
