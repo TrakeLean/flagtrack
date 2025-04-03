@@ -4,8 +4,8 @@
  */
 
 const setup = require('./src/commands/setup');
-const newtask = require('./src/commands/newtask');
-const endtask = require('./src/commands/endtask');
+const create = require('./src/commands/create');
+const solve = require('./src/commands/solve');
 const updateReadme = require('./src/commands/updateReadme');
 const { loadConfig } = require('./src/utils/configManager');
 const gitHelpers = require('./src/utils/gitHelpers');
@@ -14,8 +14,8 @@ const helpers = require('./src/utils/helpers');
 module.exports = {
   commands: {
     setup,
-    newtask,
-    endtask,
+    create,
+    solve,
     updateReadme
   },
   utils: {
