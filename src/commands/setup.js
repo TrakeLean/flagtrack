@@ -4,10 +4,10 @@ const path = require('path');
 const chalk = require('chalk');
 const YAML = require('yaml');
 const { createGitHubActions, isGitRepo, findRepoRoot } = require('../utils/gitHelpers');
-const { createConfig, saveConfig } = require('../utils/configManager');
+const { createConfig, saveConfig, loadConfig, configExists } = require('../utils/configManager');
 
 async function setup() {
-  console.log(chalk.blue('🚩 Setting up a new CTF project'));
+  console.log(chalk.blue('🚩 Setting up a CTF project'));
   
   // Check if we're in a git repository
   if (!await isGitRepo()) {
@@ -16,106 +16,149 @@ async function setup() {
   }
   
   try {
-    // Get CTF details from user
-    const mainAnswers = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'mainCtfName',
-        message: 'Main CTF Name (e.g., Cyberlandslaget):',
-        validate: input => input.trim() ? true : 'Main CTF name is required'
-      },
-      {
-        type: 'confirm',
-        name: 'setupGithubActions',
-        message: 'Set up GitHub Actions for automatic README updates?',
-        default: true
-      },
-      {
-        type: 'input',
-        name: 'parentDir',
-        message: 'Parent directory for CTF challenges (optional):',
-        default: ''
-      },
-      {
-        type: 'confirm',
-        name: 'hasSubEvents',
-        message: 'Does this CTF have multiple events/rounds (e.g., Qualification, Finals)?',
-        default: true
-      }
-    ]);
+    // Check if we're in an existing CTF project directory
+    const isExistingProject = await configExists();
+    let existingConfig = null;
     
-    let ctfStructure = {};
-    
-    if (mainAnswers.hasSubEvents) {
-      // Get sub-events
-      const subEventsAnswers = await inquirer.prompt([
+    if (isExistingProject) {
+      existingConfig = await loadConfig();
+      console.log(chalk.blue(`Found existing CTF project: ${existingConfig.ctfName}`));
+      
+      const continueAnswer = await inquirer.prompt([
         {
-          type: 'input',
-          name: 'subEvents',
-          message: 'Enter sub-events/rounds (comma-separated, e.g., "Qualification, Semi Final, Final"):',
-          validate: input => input.trim() ? true : 'At least one sub-event is required',
-          filter: input => input.split(',').map(item => item.trim()).filter(item => item)
+          type: 'confirm',
+          name: 'addEvent',
+          message: `Do you want to add a new event/round to "${existingConfig.ctfName}"?`,
+          default: true
         }
       ]);
       
-      // For each sub-event, prompt for challenge categories
-      for (const subEvent of subEventsAnswers.subEvents) {
-        const subEventAnswers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'categories',
-            message: `Enter challenge categories for "${subEvent}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
-            validate: input => input.trim() ? true : 'At least one category is required',
-            filter: input => input.split(',').map(item => item.trim()).filter(item => item)
-          }
-        ]);
-        
-        // Add to structure
-        ctfStructure[subEvent] = {
-          categories: subEventAnswers.categories.reduce((obj, cat, index) => {
-            obj[index + 1] = cat;
-            return obj;
-          }, {})
-        };
+      if (!continueAnswer.addEvent) {
+        // If they don't want to add to existing project, start a new one
+        console.log(chalk.blue('Starting setup for a new CTF project instead.'));
+        existingConfig = null;
       }
-    } else {
-      // Just get categories for the main CTF
+    }
+    
+    if (existingConfig) {
+      // Add a new event to existing CTF project
+      const eventAnswer = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'eventName',
+          message: 'Name of the new event/round:',
+          validate: input => input.trim() ? true : 'Event name is required'
+        }
+      ]);
+      
       const categoriesAnswer = await inquirer.prompt([
         {
           type: 'input',
           name: 'categories',
-          message: 'Enter challenge categories (comma-separated, e.g., "Web, Crypto, Forensics"):',
+          message: `Enter challenge categories for "${eventAnswer.eventName}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
           validate: input => input.trim() ? true : 'At least one category is required',
-          filter: input => input.split(',').map(item => item.trim()).filter(item => item)
+          filter: input => {
+            if (typeof input === 'string') {
+              return input.split(',').map(item => item.trim()).filter(Boolean);
+            }
+            return input;
+          }
         }
       ]);
       
-      // Add to structure
-      ctfStructure = {
+      // Create structure for new event
+      if (!existingConfig.structure) {
+        existingConfig.structure = {};
+      }
+      
+      existingConfig.structure[eventAnswer.eventName] = {
         categories: categoriesAnswer.categories.reduce((obj, cat, index) => {
           obj[index + 1] = cat;
           return obj;
         }, {})
       };
-    }
-    
-    // Create config object
-    const ctfConfig = createConfig({
-      ctfName: mainAnswers.mainCtfName,
-      structure: ctfStructure,
-      parentDir: mainAnswers.parentDir || null
-    });
-    
-    // Save the config
-    await saveConfig(ctfConfig);
-    console.log(chalk.green('✅ Configuration saved'));
-    
-    // Set up GitHub Actions if requested
-    if (mainAnswers.setupGithubActions) {
+      
+      // Save updated config
+      await saveConfig(existingConfig);
+      console.log(chalk.green(`✅ Added "${eventAnswer.eventName}" to "${existingConfig.ctfName}"`));
+      
+    } else {
+      // Set up a new CTF project
+      const mainAnswers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'mainCtfName',
+          message: 'CTF Name:',
+          validate: input => input.trim() ? true : 'CTF name is required'
+        },
+        {
+          type: 'input',
+          name: 'eventName',
+          message: 'Name of the first event/round:',
+          validate: input => input.trim() ? true : 'Event name is required'
+        }
+      ]);
+      
+      // Set parent directory to the main CTF name
+      const parentDir = mainAnswers.mainCtfName;
+      
+      const categoriesAnswer = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'categories',
+          message: `Enter challenge categories for "${mainAnswers.eventName}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
+          validate: input => input.trim() ? true : 'At least one category is required',
+          filter: input => {
+            if (typeof input === 'string') {
+              return input.split(',').map(item => item.trim()).filter(Boolean);
+            }
+            return input;
+          }
+        }
+      ]);
+      
+      // Create structure for the new CTF
+      const ctfStructure = {};
+      ctfStructure[mainAnswers.eventName] = {
+        categories: categoriesAnswer.categories.reduce((obj, cat, index) => {
+          obj[index + 1] = cat;
+          return obj;
+        }, {})
+      };
+      
+      // Create config object
+      const ctfConfig = createConfig({
+        ctfName: mainAnswers.mainCtfName,
+        structure: ctfStructure,
+        parentDir
+      });
+      
+      // Save the config
+      await saveConfig(ctfConfig);
+      console.log(chalk.green('✅ Configuration saved'));
+      
+      // Check if GitHub Actions are already set up
       const repoRoot = await findRepoRoot();
       if (repoRoot) {
-        await createGitHubActions(repoRoot);
-        console.log(chalk.green('✅ GitHub Actions workflow created'));
+        const githubDirExists = await fs.pathExists(path.join(repoRoot, '.github'));
+        
+        if (!githubDirExists) {
+          const githubAnswer = await inquirer.prompt([
+            {
+              type: 'confirm',
+              name: 'setupGithubActions',
+              message: 'Set up GitHub Actions for automatic README updates?',
+              default: true
+            }
+          ]);
+          
+          if (githubAnswer.setupGithubActions) {
+            await createGitHubActions(repoRoot);
+            console.log(chalk.green('✅ GitHub Actions workflow created'));
+          }
+        } else {
+          console.log(chalk.blue('ℹ️ GitHub directory already exists. Skipping GitHub Actions setup.'));
+        }
       } else {
         console.log(chalk.yellow('⚠️ Could not find repository root. GitHub Actions setup skipped.'));
       }
