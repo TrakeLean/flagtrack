@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const simpleGit = require('simple-git');
 const { loadConfig } = require('../utils/configManager');
 const { findRepoRoot, isGitRepo, getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
-const { slugify, validateLocation } = require('../utils/helpers');
+const { slugify, validateLocation, normalizeCategories } = require('../utils/helpers');
 
 async function create() {
   console.log(chalk.blue('🧩 Creating a new CTF challenge task'));
@@ -45,10 +45,10 @@ async function create() {
         name: 'taskNum',
         message: 'Enter task number (e.g. 1, 2, 10):',
         validate: input => {
-          const num = parseInt(input.trim());
+          const num = parseInt(String(input).trim());
           return !isNaN(num) && num > 0 ? true : 'Please enter a valid positive number';
         },
-        filter: input => parseInt(input.trim())
+        filter: input => parseInt(String(input).trim())        
       }
     ]);
     

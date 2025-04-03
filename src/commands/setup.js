@@ -55,26 +55,21 @@ async function setup() {
         {
           type: 'input',
           name: 'categories',
-          message: `Enter challenge categories for "${eventAnswer.eventName}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
-          validate: input => input.trim() ? true : 'At least one category is required',
+          message: `Enter challenge categories for "${mainAnswers.eventName}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
+          validate: input => {
+            const value = String(input).trim();
+            return value ? true : 'At least one category is required';
+          },
           filter: input => {
-            if (!input) return [];
-            
-            if (typeof input === 'string') {
-              return input.split(',').map(item => item.trim()).filter(Boolean);
-            }
-            
-            if (Array.isArray(input)) {
-              return input.map(item => 
-                typeof item === 'string' ? item.trim() : String(item)
-              ).filter(Boolean);
-            }
-            
-            return [String(input)];
+            const str = String(input).trim();
+            return str
+              .split(',')
+              .map(item => item.trim())
+              .filter(Boolean);
           }
         }
+        
       ]);
-      
       // Create structure for new event
       if (!existingConfig.structure) {
         existingConfig.structure = {};
@@ -116,22 +111,18 @@ async function setup() {
           type: 'input',
           name: 'categories',
           message: `Enter challenge categories for "${mainAnswers.eventName}" (comma-separated, e.g., "Web, Crypto, Forensics"):`,
-          validate: input => input.trim() ? true : 'At least one category is required',
-          filter: input => {
-            if (!input) return [];
-            
-            if (typeof input === 'string') {
-              return input.split(',').map(item => item.trim()).filter(Boolean);
-            }
-            
-            if (Array.isArray(input)) {
-              return input.map(item => 
-                typeof item === 'string' ? item.trim() : String(item)
-              ).filter(Boolean);
-            }
-            
-            return [String(input)];
-          }
+          validate: input => {
+            if (!input) return 'At least one category is required';
+          
+            const normalized =
+              typeof input === 'string'
+                ? input.split(',').map(i => i.trim()).filter(Boolean)
+                : Array.isArray(input)
+                  ? input.map(i => String(i).trim()).filter(Boolean)
+                  : [String(input).trim()];
+          
+            return normalized.length > 0 ? true : 'At least one category is required';
+          },          
         }
       ]);
       
