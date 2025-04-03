@@ -7,7 +7,7 @@ const { loadConfig } = require('../utils/configManager');
 const { findRepoRoot, isGitRepo, getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
 const { slugify, validateLocation } = require('../utils/helpers');
 
-async function newtask() {
+async function create() {
   console.log(chalk.blue('🧩 Creating a new CTF challenge task'));
   
   try {
@@ -241,4 +241,4 @@ async function createAndCheckoutBranch(category, taskNum, taskSlug) {
   }
 }
 
-module.exports = newtask;
+module.exports = create;
