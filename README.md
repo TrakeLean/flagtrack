@@ -44,7 +44,7 @@ This interactive command will:
 
 ```bash
 # Create a new challenge task
-flagtrack newtask
+flagtrack create
 ```
 
 This will:
@@ -57,7 +57,7 @@ This will:
 
 ```bash
 # Mark a challenge as complete
-flagtrack endtask
+flagtrack solve
 ```
 
 Use this command when you've solved a challenge to:
@@ -133,9 +133,9 @@ Things learned, techniques to remember...
 
 flagtrack implements a streamlined Git workflow:
 
-1. **Start a challenge**: `flagtrack newtask` creates a branch like `web-01-challenge-name`
+1. **Start a challenge**: `flagtrack create` creates a branch like `web-01-challenge-name`
 2. **Work on solution**: Make changes in the task branch
-3. **Complete challenge**: `flagtrack endtask` updates solution, merges to main, and cleans up
+3. **Complete challenge**: `flagtrack solve` updates solution, merges to main, and cleans up
 4. **Track progress**: GitHub Actions automatically updates the README
 
 ## 🔄 GitHub Actions Integration
@@ -179,8 +179,8 @@ flagtrack.commands.updateReadme()
 | Command | Description |
 |---------|-------------|
 | `flagtrack setup` | Initialize a new CTF project |
-| `flagtrack newtask` | Create a new challenge task |
-| `flagtrack endtask` | Mark a challenge as completed |
+| `flagtrack create` | Create a new challenge task |
+| `flagtrack solve` | Mark a challenge as completed |
 | `flagtrack update` | Update the README progress tracker |
 | `flagtrack --help` | Show help information |
 | `flagtrack <command> --help` | Show help for a specific command |
