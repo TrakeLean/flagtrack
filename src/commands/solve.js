@@ -7,7 +7,7 @@ const { getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
 const { loadConfig } = require('../utils/configManager');
 const { validateLocation } = require('../utils/helpers');
 
-async function endtask() {
+async function solve() {
   console.log(chalk.blue('🏁 Checking task completion status'));
   
   try {
@@ -25,9 +25,9 @@ async function endtask() {
       process.exit(1);
     }
     
-    // Don't allow endtask on main/master branch
+    // Don't allow solve on main/master branch
     if (currentBranch === 'main' || currentBranch === 'master') {
-      console.log(chalk.red('❌ Cannot run endtask on main/master branch.'));
+      console.log(chalk.red('❌ Cannot run solve on main/master branch.'));
       console.log(chalk.yellow('Please checkout a task branch first.'));
       process.exit(1);
     }
@@ -89,7 +89,7 @@ async function endtask() {
         await mergeAndDeleteBranch(currentBranch);
         console.log(chalk.green('🎉 Task completed and branch cleaned up!'));
       } else {
-        console.log(chalk.blue('Task remains open. Run `flagtrack endtask` again when ready to merge.'));
+        console.log(chalk.blue('Task remains open. Run `flagtrack solve` again when ready to merge.'));
       }
       
       return;
@@ -107,7 +107,7 @@ async function endtask() {
     
     // If they didn't solve it, don't continue
     if (!solvedFlag && isFlagMissing) {
-      console.log(chalk.yellow('🔍 Task remains unsolved. Run `flagtrack endtask` when the flag is found.'));
+      console.log(chalk.yellow('🔍 Task remains unsolved. Run `flagtrack solve` when the flag is found.'));
       return;
     }
     
@@ -235,11 +235,11 @@ async function endtask() {
         console.log(chalk.green('🎉 Task completed and branch cleaned up!'));
       } else {
         console.log(chalk.blue('Task marked as complete but branch remains open.'));
-        console.log(chalk.blue('Run `flagtrack endtask` again when ready to merge.'));
+        console.log(chalk.blue('Run `flagtrack solve` again when ready to merge.'));
       }
     } else {
       console.log(chalk.blue('Task is still missing some information.'));
-      console.log(chalk.blue('Run `flagtrack endtask` again to complete the task.'));
+      console.log(chalk.blue('Run `flagtrack solve` again to complete the task.'));
     }
     
   } catch (error) {
@@ -450,4 +450,4 @@ async function selectTaskManually(config) {
   }
 }
 
-module.exports = endtask;
+module.exports = solve;
