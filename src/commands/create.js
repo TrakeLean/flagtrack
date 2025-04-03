@@ -104,7 +104,7 @@ async function createTaskStructure(ctfRoot, category, taskName, taskNum, config)
   
   // Create folder structure
   await fs.ensureDir(taskFolder);
-  const folderTemplate = ['files', 'exploit', 'screenshots'];
+  const folderTemplate = ['challenge_files', 'workspace', 'exploit', 'screenshots'];
   for (const folder of folderTemplate) {
     await fs.ensureDir(path.join(taskFolder, folder));
   }
