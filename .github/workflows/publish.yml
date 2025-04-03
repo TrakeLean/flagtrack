@@ -1,0 +1,68 @@
+name: Publish NPM Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+        
+      - name: Test
+        run: npm test
+      
+      - name: Setup Git User
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
+      
+      - name: Determine Version Bump
+        id: version
+        run: |
+          # Install standard-version to handle conventional commits
+          npm install -g standard-version
+          
+          # Get latest commit message
+          COMMIT_MSG=$(git log -1 --pretty=format:%s)
+          
+          # Determine version bump type based on commit message
+          if [[ $COMMIT_MSG == feat\(* ]] || [[ $COMMIT_MSG == feat:* ]]; then
+            echo "BUMP=minor" >> $GITHUB_OUTPUT
+          elif [[ $COMMIT_MSG == fix\(* ]] || [[ $COMMIT_MSG == fix:* ]]; then
+            echo "BUMP=patch" >> $GITHUB_OUTPUT
+          elif [[ $COMMIT_MSG == BREAKING* ]] || [[ $COMMIT_MSG == *\!:* ]]; then
+            echo "BUMP=major" >> $GITHUB_OUTPUT
+          else
+            echo "BUMP=patch" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Update Version
+        run: |
+          npm version ${{ steps.version.outputs.BUMP }} -m "chore(release): %s [skip ci]"
+      
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Push Version Update
+        run: git push --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
