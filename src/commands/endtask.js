@@ -25,8 +25,15 @@ async function endtask() {
       process.exit(1);
     }
     
+    // Don't allow endtask on main/master branch
+    if (currentBranch === 'main' || currentBranch === 'master') {
+      console.log(chalk.red('❌ Cannot run endtask on main/master branch.'));
+      console.log(chalk.yellow('Please checkout a task branch first.'));
+      process.exit(1);
+    }
+    
     // Try to find task from branch name
-    const taskInfo = await findTaskFromBranch(currentBranch, config);
+    let taskInfo = await findTaskFromBranch(currentBranch, config);
     if (!taskInfo) {
       // If task not found from branch, allow manual selection
       console.log(chalk.yellow('⚠️ Could not determine task from branch name.'));
@@ -46,96 +53,253 @@ async function endtask() {
       process.exit(1);
     }
     
-    // Read the writeup and check for flag
+    // Read the writeup and check for required fields
     const writeupContent = await fs.readFile(writeupPath, 'utf-8');
+    
+    // Check for flag, points, and solver
     const flagMatch = writeupContent.match(/\*\*Flag:\*\* `(.+)`/);
     const flag = flagMatch ? flagMatch[1] : null;
+    const isFlagMissing = !flag || flag === 'TBD';
     
-    if (!flag || flag === 'TBD') {
-      console.log(chalk.yellow('🔍 Flag not found or still set to TBD.'));
+    const pointsMatch = writeupContent.match(/\*\*Points:\*\* (\d+|TBD)/);
+    const points = pointsMatch ? pointsMatch[1] : null;
+    const isPointsMissing = !points || points === 'TBD';
+    
+    const solverMatch = writeupContent.match(/\*\*Solver:\*\* (.+)/);
+    const solver = solverMatch ? solverMatch[1].trim() : null;
+    const isSolverMissing = !solver || solver === 'TBD';
+    
+    // If everything is filled, ask if they want to finish the task
+    if (!isFlagMissing && !isPointsMissing && !isSolverMissing) {
+      console.log(chalk.green('✅ Task is complete:'));
+      console.log(chalk.green(`🏆 Flag: ${flag}`));
+      console.log(chalk.green(`💯 Points: ${points}`));
+      console.log(chalk.green(`👤 Solver: ${solver}`));
       
-      // Ask user if they want to add a flag
-      const { addFlag } = await inquirer.prompt([
+      const { finishTask } = await inquirer.prompt([
         {
           type: 'confirm',
-          name: 'addFlag',
-          message: 'Do you want to add a flag now?',
+          name: 'finishTask',
+          message: 'Do you want to merge this branch to main and delete it?',
           default: true
         }
       ]);
       
-      if (addFlag) {
-        const { flagValue } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'flagValue',
-            message: 'Enter the flag:',
-            validate: input => input.trim() ? true : 'Flag cannot be empty'
-          }
-        ]);
-        
-        // Also update the solver
-        const solver = await getGitUserName() || 'Unknown';
-        
-        // Update the writeup file
-        let updatedContent = writeupContent;
-        if (flagMatch) {
-          // Replace existing TBD flag
-          updatedContent = updatedContent.replace(/\*\*Flag:\*\* `TBD`/, `**Flag:** \`${flagValue}\``);
-        } else {
-          // Add flag after category
-          updatedContent = updatedContent.replace(/\*\*Category:\*\* (.+)/, `**Category:** $1\n**Flag:** \`${flagValue}\``);
-        }
-        
-        // Update solver
-        if (updatedContent.includes('**Solver:** TBD')) {
-          updatedContent = updatedContent.replace(/\*\*Solver:\*\* TBD/, `**Solver:** ${solver}`);
-        } else if (!updatedContent.includes('**Solver:**')) {
-          // Add solver after flag
-          updatedContent = updatedContent.replace(/\*\*Flag:\*\* `(.+)`/, `**Flag:** \`$1\`\n**Solver:** ${solver}`);
-        }
-        
-        // Write updated content back to file
-        await fs.writeFile(writeupPath, updatedContent, 'utf-8');
-        
-        console.log(chalk.green(`✅ Flag added: ${flagValue}`));
-        console.log(chalk.green(`✅ Solver set to: ${solver}`));
-        
-        // Commit the changes
-        try {
-          const git = simpleGit();
-          await git.add(writeupPath);
-          await git.commit(`Add flag solution by ${solver}`);
-          console.log(chalk.green('✅ Changes committed.'));
-          
-          // Push changes
-          try {
-            await git.push();
-            console.log(chalk.green('✅ Changes pushed to remote.'));
-          } catch (pushError) {
-            console.log(chalk.yellow(`⚠️ Could not push changes: ${pushError.message}`));
-          }
-        } catch (gitError) {
-          console.log(chalk.yellow(`⚠️ Could not commit changes: ${gitError.message}`));
-        }
-        
-        console.log(chalk.green('🎉 Task completed successfully!'));
+      if (finishTask) {
+        await mergeAndDeleteBranch(currentBranch);
+        console.log(chalk.green('🎉 Task completed and branch cleaned up!'));
       } else {
-        console.log(chalk.blue('Task remains unsolved.'));
+        console.log(chalk.blue('Task remains open. Run `flagtrack endtask` again when ready to merge.'));
+      }
+      
+      return;
+    }
+    
+    // First, ask if they solved the flag
+    const { solvedFlag } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'solvedFlag',
+        message: 'Did you solve the flag?',
+        default: true
+      }
+    ]);
+    
+    // If they didn't solve it, don't continue
+    if (!solvedFlag && isFlagMissing) {
+      console.log(chalk.yellow('🔍 Task remains unsolved. Run `flagtrack endtask` when the flag is found.'));
+      return;
+    }
+    
+    // Prepare to update the writeup
+    let updatedContent = writeupContent;
+    let isUpdated = false;
+    
+    // Update flag if missing
+    if (isFlagMissing) {
+      const { flagValue } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'flagValue',
+          message: 'Enter the flag:',
+          validate: input => input.trim() ? true : 'Flag cannot be empty'
+        }
+      ]);
+      
+      if (flagMatch) {
+        // Replace existing TBD flag
+        updatedContent = updatedContent.replace(/\*\*Flag:\*\* `TBD`/, `**Flag:** \`${flagValue}\``);
+      } else {
+        // Add flag after category
+        updatedContent = updatedContent.replace(/\*\*Category:\*\* (.+)/, `**Category:** $1\n**Flag:** \`${flagValue}\``);
+      }
+      isUpdated = true;
+    }
+    
+    // Update solver if missing
+    if (isSolverMissing) {
+      const { solverName } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'solverName',
+          message: 'Who solved this challenge?',
+          default: solvedFlag ? (await getGitUserName() || 'Unknown') : 'Team effort'
+        }
+      ]);
+      
+      if (solverMatch) {
+        // Replace existing TBD solver
+        updatedContent = updatedContent.replace(/\*\*Solver:\*\* TBD/, `**Solver:** ${solverName}`);
+      } else {
+        // Add solver after flag
+        updatedContent = updatedContent.replace(/\*\*Flag:\*\* `(.+)`/, `**Flag:** \`$1\`\n**Solver:** ${solverName}`);
+      }
+      isUpdated = true;
+    }
+    
+    // Update points if missing
+    if (isPointsMissing) {
+      const { pointsValue } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'pointsValue',
+          message: 'Enter the points for this challenge:',
+          validate: input => {
+            const number = parseInt(input.trim());
+            return !isNaN(number) && number > 0 ? true : 'Please enter a valid positive number';
+          }
+        }
+      ]);
+      
+      if (pointsMatch) {
+        // Replace existing TBD points
+        updatedContent = updatedContent.replace(/\*\*Points:\*\* TBD/, `**Points:** ${pointsValue}`);
+      } else {
+        // Add points after category
+        updatedContent = updatedContent.replace(/\*\*Category:\*\* (.+)/, `**Category:** $1\n**Points:** ${pointsValue}`);
+      }
+      isUpdated = true;
+    }
+    
+    // If content was updated, write back to file
+    if (isUpdated) {
+      await fs.writeFile(writeupPath, updatedContent, 'utf-8');
+      console.log(chalk.green('✅ Writeup updated with missing information.'));
+      
+      // Commit the changes
+      try {
+        const git = simpleGit();
+        await git.add(writeupPath);
+        
+        // Create appropriate commit message
+        let commitMessage = 'Update task';
+        if (isFlagMissing && solvedFlag) {
+          const solverName = updatedContent.match(/\*\*Solver:\*\* (.+)/)[1].trim();
+          commitMessage = `Add flag solution by ${solverName}`;
+        } else if (isPointsMissing) {
+          commitMessage = 'Add points to task';
+        }
+        
+        await git.commit(commitMessage);
+        console.log(chalk.green('✅ Changes committed.'));
+        
+        // Push changes
+        try {
+          await git.push();
+          console.log(chalk.green('✅ Changes pushed to remote.'));
+        } catch (pushError) {
+          console.log(chalk.yellow(`⚠️ Could not push changes: ${pushError.message}`));
+        }
+      } catch (gitError) {
+        console.log(chalk.yellow(`⚠️ Could not commit changes: ${gitError.message}`));
+      }
+    }
+    
+    // If everything is now complete, ask about merging
+    if (updatedContent.match(/\*\*Flag:\*\* `(.+?)`/) && 
+        updatedContent.match(/\*\*Points:\*\* (\d+)/) && 
+        updatedContent.match(/\*\*Solver:\*\* (.+)/) &&
+        !updatedContent.includes('TBD')) {
+      
+      const { finishTask } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'finishTask',
+          message: 'Task is now complete! Merge this branch to main and delete it?',
+          default: true
+        }
+      ]);
+      
+      if (finishTask) {
+        await mergeAndDeleteBranch(currentBranch);
+        console.log(chalk.green('🎉 Task completed and branch cleaned up!'));
+      } else {
+        console.log(chalk.blue('Task marked as complete but branch remains open.'));
+        console.log(chalk.blue('Run `flagtrack endtask` again when ready to merge.'));
       }
     } else {
-      // Flag already exists
-      const solverMatch = writeupContent.match(/\*\*Solver:\*\* (.+)/);
-      const solver = solverMatch ? solverMatch[1].trim() : 'Unknown';
-      
-      console.log(chalk.green('🎯 Flag already solved!'));
-      console.log(chalk.green(`🏆 Flag: ${flag}`));
-      console.log(chalk.green(`👤 Solver: ${solver}`));
+      console.log(chalk.blue('Task is still missing some information.'));
+      console.log(chalk.blue('Run `flagtrack endtask` again to complete the task.'));
     }
     
   } catch (error) {
     console.error(chalk.red('❌ Error checking task:'), error.message);
     process.exit(1);
+  }
+}
+
+async function mergeAndDeleteBranch(currentBranch) {
+  try {
+    const git = simpleGit();
+    
+    // Check if we have any uncommitted changes
+    const status = await git.status();
+    if (status.files.length > 0) {
+      console.log(chalk.yellow('⚠️ You have uncommitted changes. Please commit or stash them first.'));
+      return false;
+    }
+    
+    // Get main branch name (either main or master)
+    const branches = await git.branch();
+    const mainBranch = branches.all.includes('main') ? 'main' : 'master';
+    
+    // Make sure we have the latest changes from main
+    console.log(chalk.blue(`📥 Fetching latest changes from ${mainBranch}...`));
+    await git.fetch('origin', mainBranch);
+    
+    // Checkout main branch
+    console.log(chalk.blue(`🔄 Switching to ${mainBranch} branch...`));
+    await git.checkout(mainBranch);
+    
+    // Pull latest changes
+    await git.pull('origin', mainBranch);
+    
+    // Merge the task branch
+    console.log(chalk.blue(`🔀 Merging ${currentBranch} into ${mainBranch}...`));
+    await git.merge([currentBranch, '--no-ff', '-m', `Merge task branch '${currentBranch}'`]);
+    
+    // Push the changes to main
+    console.log(chalk.blue(`📤 Pushing changes to ${mainBranch}...`));
+    await git.push('origin', mainBranch);
+    
+    // Delete the branch locally
+    console.log(chalk.blue(`🗑️ Deleting local branch ${currentBranch}...`));
+    await git.deleteLocalBranch(currentBranch, true);
+    
+    // Delete the branch on remote
+    console.log(chalk.blue(`🗑️ Deleting remote branch ${currentBranch}...`));
+    try {
+      await git.push('origin', `:${currentBranch}`);
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️ Could not delete remote branch: ${error.message}`));
+      console.log(chalk.yellow('This is often normal for protected branches or if the branch was never pushed.'));
+    }
+    
+    return true;
+  } catch (error) {
+    console.log(chalk.red(`❌ Error during merge: ${error.message}`));
+    console.log(chalk.yellow('You may need to resolve conflicts or complete the merge manually.'));
+    return false;
   }
 }
 
