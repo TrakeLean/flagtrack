@@ -13,6 +13,7 @@
 - **Automatic README Generation**: Keep track of team progress with auto-updating dashboards
 - **Git Integration**: Streamlined Git workflows for team collaboration
 - **Task Completion Tracking**: Record flags, points, and solvers for each challenge
+- **Team Leaderboard**: Track individual contributions and generate statistics
 - **GitHub Actions Support**: Automatic README updates when challenges are solved
 
 ## 📋 Installation
@@ -78,6 +79,19 @@ This will:
 - Compile statistics and completion status
 - Generate a comprehensive README with progress information
 - Show challenge details, flags, and solvers
+
+### Viewing the team leaderboard
+
+```bash
+# Show team leaderboard and contributor statistics
+flagtrack leaderboard
+```
+
+This will:
+- Generate a ranking of all challenge solvers
+- Show points and challenges completed by each person
+- Identify top categories for each solver
+- Offer export options (Markdown or JSON)
 
 ## 📂 Directory Structure
 
@@ -182,6 +196,7 @@ flagtrack.commands.updateReadme()
 | `flagtrack create` | Create a new challenge task |
 | `flagtrack solve` | Mark a challenge as completed |
 | `flagtrack update` | Update the README progress tracker |
+| `flagtrack leaderboard` | Generate team contribution statistics |
 | `flagtrack --help` | Show help information |
 | `flagtrack <command> --help` | Show help for a specific command |
 
