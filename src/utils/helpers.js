@@ -74,7 +74,16 @@ async function validateLocation(config) {
   return newCtfDir;
 }
 
+// Helper function to format directory names with numbering and replace spaces with hyphens
+function formatDirectoryName(name, index) {
+  // Replace spaces with hyphens
+  const formattedName = name.replace(/\s+/g, '-');
+  // Add numbering prefix
+  return `${String(index).padStart(2, '0')}_${formattedName}`;
+}
+
 module.exports = {
   slugify,
-  validateLocation
+  validateLocation,
+  formatDirectoryName
 };

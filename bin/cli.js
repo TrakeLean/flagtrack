@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const { program } = require('commander');
 const setup = require('../src/commands/setup');
 const create = require('../src/commands/create');

@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const simpleGit = require('simple-git');
 const { loadConfig } = require('../utils/configManager');
 const { findRepoRoot, isGitRepo, getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
-const { slugify, validateLocation, normalizeCategories } = require('../utils/helpers');
+const { slugify, validateLocation } = require('../utils/helpers');
 
 async function create() {
   console.log(chalk.blue('🧩 Creating a new CTF challenge task'));
@@ -18,22 +18,81 @@ async function create() {
       process.exit(1);
     }
     
-    // Validate location
-    const ctfRoot = await validateLocation(config);
-    console.log(chalk.blue(`Working in CTF directory: ${ctfRoot}`));
+    // Determine current working directory and check if we're in a CTF event directory
+    const currentDir = process.cwd();
+    const ctfRoot = config.parentDir ? path.resolve(config.parentDir) : null;
     
-    // Get category choice
-    const categories = config.categories;
-    const categoryChoices = Object.entries(categories).map(([key, value]) => ({
+    // Get the CTF structure from config
+    const structure = config.structure || {};
+    
+    // Get all event names from the structure
+    const eventNames = Object.keys(structure);
+    
+    // Detect if we're in an event directory by checking if current directory name matches any event
+    const currentDirName = path.basename(currentDir);
+    let selectedEvent = null;
+    
+    // Check if we're in a CTF event directory
+    const isInEvent = eventNames.includes(currentDirName);
+    
+    if (isInEvent) {
+      // We're already in an event directory
+      selectedEvent = currentDirName;
+      console.log(chalk.blue(`Working in CTF event directory: ${selectedEvent}`));
+    } else {
+      // We're not in an event directory, check if we're in the CTF root or somewhere else
+      const parentDir = path.dirname(currentDir);
+      const parentDirName = path.basename(parentDir);
+      
+      if (parentDirName === config.ctfName || currentDirName === config.ctfName) {
+        // We're either in the CTF root directory or one level below it
+        // Ask user which event to work with
+        const { event } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'event',
+            message: 'Select an event/round to create a task for:',
+            choices: eventNames
+          }
+        ]);
+        selectedEvent = event;
+      } else {
+        // We're not in any recognizable CTF directory
+        console.log(chalk.yellow('⚠️ Not in a recognized CTF directory.'));
+        
+        // Ask user which event to work with
+        const { event } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'event',
+            message: 'Select an event/round to create a task for:',
+            choices: eventNames
+          }
+        ]);
+        selectedEvent = event;
+      }
+    }
+    
+    // Get categories for the selected event
+    const eventCategories = structure[selectedEvent]?.categories || {};
+    
+    // Format categories for display
+    const categoryChoices = Object.entries(eventCategories).map(([key, value]) => ({
       name: `${value}`,
       value: value
     }));
     
+    if (categoryChoices.length === 0) {
+      console.log(chalk.red(`❌ No categories found for event "${selectedEvent}".`));
+      process.exit(1);
+    }
+    
+    // Get category choice
     const { category } = await inquirer.prompt([
       {
         type: 'list',
         name: 'category',
-        message: 'Choose a category:',
+        message: `Choose a category for ${selectedEvent}:`,
         choices: categoryChoices
       }
     ]);
@@ -62,8 +121,28 @@ async function create() {
       }
     ]);
     
+    // Determine the task root directory (where tasks will be created)
+    let taskRoot;
+    
+    if (isInEvent) {
+      // If we're in the event directory, use the current directory
+      taskRoot = currentDir;
+    } else if (ctfRoot) {
+      // If we have a CTF root, use that plus the selected event
+      taskRoot = path.join(ctfRoot, selectedEvent);
+    } else {
+      // Fallback: use current directory plus CTF name plus selected event
+      taskRoot = path.join(currentDir, config.ctfName, selectedEvent);
+    }
+    
+    // Ensure the task root directory exists
+    await fs.ensureDir(taskRoot);
+    console.log(chalk.blue(`Creating task in directory: ${taskRoot}`));
+    
     // Create task structure
-    await createTaskStructure(ctfRoot, category, taskName, taskNum, config);
+    await createTaskStructure(taskRoot, category, taskName, taskNum, {
+      categories: eventCategories
+    });
     
   } catch (error) {
     console.error(chalk.red('❌ Task creation failed:'), error.message);
@@ -139,8 +218,6 @@ _Detail every major step you took, including tools, commands, reasoning, etc._
 _Interesting techniques, things you learned, or anything to remember for next time._
 
 ---
-
-*Task template created by: ${creatorName}*
 `;
 
   const writeupPath = path.join(taskFolder, 'writeup.md');
