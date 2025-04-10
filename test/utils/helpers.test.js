@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const mockFs = require('mock-fs');
-const { slugify, validateLocation } = require('../../src/utils/helpers');
+const { slugify, getEventContext } = require('../../src/utils/helpers');
 
 // Mock git helpers
 jest.mock('../../src/utils/gitHelpers', () => ({
@@ -13,13 +13,13 @@ describe('Helpers', () => {
     // Setup mock filesystem
     mockFs({
       '/mock/repo/root': {
-        'CTF_Name': {
+        'event_Name': {
           '01_Crypto': {},
           '02_Web': {}
         }
       },
       '/mock/repo/root/parent_dir': {
-        'CTF_Name': {}
+        'event_Name': {}
       },
       '/current': {}
     });
@@ -53,7 +53,7 @@ describe('Helpers', () => {
     });
   });
 
-  describe('validateLocation', () => {
+  describe('getEventContext', () => {
     let originalCwd;
 
     beforeEach(() => {
@@ -65,49 +65,49 @@ describe('Helpers', () => {
       process.cwd = originalCwd;
     });
 
-    it('should return the CTF directory if already in it', async () => {
-      process.cwd = jest.fn().mockReturnValue('/mock/repo/root/CTF_Name');
+    it('should return the event directory if already in it', async () => {
+      process.cwd = jest.fn().mockReturnValue('/mock/repo/root/event_Name');
       
       const config = {
-        ctfName: 'CTF_Name',
+        eventName: 'event_Name',
         parentDir: null
       };
       
-      const result = await validateLocation(config);
-      expect(result).toBe('/mock/repo/root/CTF_Name');
+      const result = await getEventContext(config);
+      expect(result).toBe('/mock/repo/root/event_Name');
     });
 
-    it('should find CTF directory in the parent directory', async () => {
+    it('should find event directory in the parent directory', async () => {
       const config = {
-        ctfName: 'CTF_Name',
+        eventName: 'event_Name',
         parentDir: 'parent_dir'
       };
       
-      const result = await validateLocation(config);
-      expect(result).toBe('/mock/repo/root/parent_dir/CTF_Name');
+      const result = await getEventContext(config);
+      expect(result).toBe('/mock/repo/root/parent_dir/event_Name');
     });
 
-    it('should return the CTF directory from repo root', async () => {
+    it('should return the event directory from repo root', async () => {
       const config = {
-        ctfName: 'CTF_Name',
+        eventName: 'event_Name',
         parentDir: null
       };
       
-      const result = await validateLocation(config);
-      expect(result).toBe('/mock/repo/root/CTF_Name');
+      const result = await getEventContext(config);
+      expect(result).toBe('/mock/repo/root/event_Name');
     });
 
-    it('should create CTF directory if it does not exist', async () => {
+    it('should create event directory if it does not exist', async () => {
       const config = {
-        ctfName: 'New_CTF',
+        eventName: 'New_event',
         parentDir: null
       };
       
-      const result = await validateLocation(config);
-      expect(result).toBe('/mock/repo/root/New_CTF');
+      const result = await getEventContext(config);
+      expect(result).toBe('/mock/repo/root/New_event');
       
       // Check if directory was created
-      expect(await fs.pathExists('/mock/repo/root/New_CTF')).toBe(true);
+      expect(await fs.pathExists('/mock/repo/root/New_event')).toBe(true);
     });
 
     it('should throw an error if not in a git repo', async () => {
@@ -116,11 +116,11 @@ describe('Helpers', () => {
       findRepoRoot.mockResolvedValueOnce(null);
       
       const config = {
-        ctfName: 'CTF_Name',
+        eventName: 'event_Name',
         parentDir: null
       };
       
-      await expect(validateLocation(config)).rejects.toThrow('Not in a git repository');
+      await expect(getEventContext(config)).rejects.toThrow('Not in a git repository');
     });
   });
 });

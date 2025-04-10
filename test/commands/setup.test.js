@@ -57,7 +57,7 @@ describe('Setup Command', () => {
     process.exit = originalExit;
   });
 
-  it('should set up a new CTF project', async () => {
+  it('should set up a new event project', async () => {
     // Mock configExists to return false (no existing project)
     const configExists = require('../../src/utils/configManager').configExists;
     configExists.mockResolvedValueOnce(false);
@@ -67,9 +67,9 @@ describe('Setup Command', () => {
     inquirer.prompt.mockImplementation(questions => {
       const question = questions[0];
       
-      if (question.name === 'mainCtfName') {
+      if (question.name === 'maineventName') {
         return Promise.resolve({
-          mainCtfName: 'TestCTF',
+          maineventName: 'Testevent',
           eventName: 'Round1'
         });
       }
@@ -95,7 +95,7 @@ describe('Setup Command', () => {
     // Verify config was saved with the formatted directory names
     const saveConfig = require('../../src/utils/configManager').saveConfig;
     expect(saveConfig).toHaveBeenCalledWith(expect.objectContaining({
-      ctfName: 'TestCTF',
+      eventName: 'Testevent',
       structure: expect.objectContaining({
         '01_Round1': expect.objectContaining({
           originalName: 'Round1',
@@ -110,7 +110,7 @@ describe('Setup Command', () => {
     }));
     
     // Verify directories were created with formatted names
-    const mainDir = path.join(process.cwd(), 'TestCTF');
+    const mainDir = path.join(process.cwd(), 'Testevent');
     const eventDir = path.join(mainDir, '01_Round1');
     const webDir = path.join(eventDir, '01_Web');
     const cryptoDir = path.join(eventDir, '02_Crypto');
@@ -121,7 +121,7 @@ describe('Setup Command', () => {
     expect(createGitHubActions).toHaveBeenCalledWith('/mock/repo/root');
   });
 
-  it('should add a new event to existing CTF project', async () => {
+  it('should add a new event to existing event project', async () => {
     // Mock configExists to return true (existing project)
     const configExists = require('../../src/utils/configManager').configExists;
     configExists.mockResolvedValueOnce(true);
@@ -129,7 +129,7 @@ describe('Setup Command', () => {
     // Mock loadConfig to return existing config with formatted directory names
     const loadConfig = require('../../src/utils/configManager').loadConfig;
     const existingConfig = {
-      ctfName: 'ExistingCTF',
+      eventName: 'Existingevent',
       structure: {
         'Round1': {
           categories: {
@@ -138,7 +138,7 @@ describe('Setup Command', () => {
           }
         }
       },
-      parentDir: 'ExistingCTF',
+      parentDir: 'Existingevent',
       createdAt: '2023-01-01T00:00:00.000Z'
     };
     
@@ -179,7 +179,7 @@ describe('Setup Command', () => {
     });
     
     // Create existing directories
-    await fs.ensureDir(path.join(process.cwd(), 'ExistingCTF/Round1'));
+    await fs.ensureDir(path.join(process.cwd(), 'Existingevent/Round1'));
     
     // Execute the setup command
     await setup();
@@ -187,7 +187,7 @@ describe('Setup Command', () => {
     // Verify config was updated and saved with the correct format
     const saveConfig = require('../../src/utils/configManager').saveConfig;
     expect(saveConfig).toHaveBeenCalledWith(expect.objectContaining({
-      ctfName: 'ExistingCTF',
+      eventName: 'Existingevent',
       structure: expect.objectContaining({
         'Round1': expect.any(Object),
         '02_Round2': expect.objectContaining({

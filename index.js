@@ -1,5 +1,5 @@
 /**
- * FlagTrack - CTF Progress Tracker and Task Management Tool
+ * FlagTrack - event Progress Tracker and Task Management Tool
  * Main entry point for programmatic usage
  */
 

@@ -1,11 +1,11 @@
 # flagtrack
 
-> A comprehensive CTF challenge tracking and management tool for teams
+> A comprehensive event challenge tracking and management tool for teams
 
 [![npm version](https://img.shields.io/npm/v/flagtrack.svg)](https://www.npmjs.com/package/flagtrack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**flagtrack** is a command-line tool that helps CTF teams manage challenges, track progress, and collaborate effectively. It provides a structured approach to organizing writeups, automating Git workflows, and maintaining team progress dashboards.
+**flagtrack** is a command-line tool that helps event teams manage challenges, track progress, and collaborate effectively. It provides a structured approach to organizing writeups, automating Git workflows, and maintaining team progress dashboards.
 
 ## 🚀 Features
 
@@ -28,15 +28,15 @@ flagtrack --version
 
 ## 🧩 Getting Started
 
-### Setting up a new CTF project
+### Setting up a new event project
 
 ```bash
-# Initialize a new CTF project
+# Initialize a new event project
 flagtrack setup
 ```
 
 This interactive command will:
-- Create configuration for a new CTF competition
+- Create configuration for a new event competition
 - Set up categories for challenges
 - Configure GitHub Actions for automatic README updates
 - Create the necessary directory structure
@@ -95,10 +95,10 @@ This will:
 
 ## 📂 Directory Structure
 
-flagtrack follows a structured approach to organizing CTF challenges:
+flagtrack follows a structured approach to organizing event challenges:
 
 ```
-CTF_Name/
+event_Name/
 ├── 01_Crypto/
 │   ├── 01_challenge_name/
 │   │   ├── writeup.md       # Challenge writeup
@@ -164,7 +164,7 @@ When properly set up, flagtrack creates a GitHub Actions workflow to automatical
 The configuration is stored in `.flagtrack/config.yml` in your repository:
 
 ```yaml
-ctfName: HackThePlanet 2025
+eventName: HackThePlanet 2025
 categories:
   1: Crypto
   2: Web
@@ -193,7 +193,7 @@ flagtrack.commands.updateReadme()
 
 | Command | Description |
 |---------|-------------|
-| `flagtrack setup` | Initialize a new CTF project |
+| `flagtrack setup` | Initialize a new event project |
 | `flagtrack create` | Create a new challenge task |
 | `flagtrack solve` | Mark a challenge as completed |
 | `flagtrack update` | Update the README progress tracker |

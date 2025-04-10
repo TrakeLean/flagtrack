@@ -5,7 +5,7 @@ const simpleGit = require('simple-git');
 const inquirer = require('inquirer');
 const { getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
 const { loadConfig } = require('../utils/configManager');
-const { validateLocation } = require('../utils/helpers');
+const { getEventContext } = require('../utils/helpers');
 
 async function solve() {
   console.log(chalk.blue('🏁 Checking task completion status'));
@@ -316,7 +316,7 @@ async function findTaskFromBranch(branchName, config) {
   const taskNum = match[2].padStart(2, '0');
   
   // Find the category folder
-  const ctfRoot = await validateLocation(config);
+  const eventRoot = await getEventContext(config);
   
   // Find the category number from name
   let categoryNum = null;
@@ -332,7 +332,7 @@ async function findTaskFromBranch(branchName, config) {
   }
   
   // Look for matching task folder
-  const categoryPath = path.join(ctfRoot, `${categoryNum}_${capitalizeName(category)}`);
+  const categoryPath = path.join(eventRoot, `${categoryNum}_${capitalizeName(category)}`);
   if (!await fs.pathExists(categoryPath)) {
     return null;
   }
@@ -358,12 +358,12 @@ function capitalizeName(str) {
 
 async function selectTaskManually(config) {
   try {
-    const ctfRoot = await validateLocation(config);
+    const eventRoot = await getEventContext(config);
     
     // Get all categories
     const categories = [];
     for (const [num, name] of Object.entries(config.categories)) {
-      const categoryPath = path.join(ctfRoot, `${num.padStart(2, '0')}_${name}`);
+      const categoryPath = path.join(eventRoot, `${num.padStart(2, '0')}_${name}`);
       if (await fs.pathExists(categoryPath)) {
         categories.push({
           num: num.padStart(2, '0'),

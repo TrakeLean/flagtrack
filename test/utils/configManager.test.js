@@ -26,7 +26,7 @@ describe('Config Manager', () => {
     mockFs({
       '/mock/repo/root': {
         '.flagtrack': {
-          'config.yml': 'ctfName: TestCTF\ncategories:\n  1: Web\n  2: Crypto\nparentDir: null\ncreatedAt: "2022-01-01T00:00:00.000Z"'
+          'config.yml': 'eventName: Testevent\ncategories:\n  1: Web\n  2: Crypto\nparentDir: null\ncreatedAt: "2022-01-01T00:00:00.000Z"'
         }
       }
     });
@@ -41,12 +41,12 @@ describe('Config Manager', () => {
   describe('createConfig', () => {
     it('should create a config object with the correct structure', () => {
       const config = createConfig({
-        ctfName: 'TestCTF',
+        eventName: 'Testevent',
         categories: { 1: 'Web', 2: 'Crypto' },
         parentDir: null
       });
 
-      expect(config).toHaveProperty('ctfName', 'TestCTF');
+      expect(config).toHaveProperty('eventName', 'Testevent');
       expect(config).toHaveProperty('categories', { 1: 'Web', 2: 'Crypto' });
       expect(config).toHaveProperty('parentDir', null);
       expect(config).toHaveProperty('createdAt');
@@ -56,7 +56,7 @@ describe('Config Manager', () => {
   describe('saveConfig', () => {
     it('should save config to both store and file', async () => {
       const config = {
-        ctfName: 'SaveTestCTF',
+        eventName: 'SaveTestevent',
         categories: { 1: 'Web', 2: 'Crypto' },
         parentDir: null,
         createdAt: new Date().toISOString()
@@ -74,7 +74,7 @@ describe('Config Manager', () => {
   describe('loadConfig', () => {
     it('should load config from file if it exists', async () => {
       const config = await loadConfig();
-      expect(config).toHaveProperty('ctfName', 'TestCTF');
+      expect(config).toHaveProperty('eventName', 'Testevent');
       expect(config).toHaveProperty('categories');
       expect(config.categories).toHaveProperty('1', 'Web');
       expect(config.categories).toHaveProperty('2', 'Crypto');

@@ -24,9 +24,9 @@ jest.mock('simple-git', () => {
 
 jest.mock('../../src/utils/configManager', () => ({
   loadConfig: jest.fn().mockResolvedValue({
-    ctfName: 'TestCTF',
+    eventName: 'Testevent',
     categories: { 1: 'Web', 2: 'Crypto' },
-    parentDir: 'TestCTF'
+    parentDir: 'Testevent'
   })
 }));
 
@@ -43,7 +43,7 @@ describe('Update README Command', () => {
     // Setup mock filesystem with completed challenges
     mockFs({
       '/mock/repo/root': {
-        'TestCTF': {
+        'Testevent': {
           '01_Web': {
             '01_challenge_one': {
               'writeup.md': `# 🧩 Challenge One
@@ -121,7 +121,7 @@ Test challenge 4
     process.exit = originalExit;
   });
 
-  it('should generate a README with CTF progress information', async () => {
+  it('should generate a README with event progress information', async () => {
     // Execute the update README command
     await updateReadme();
     
@@ -133,8 +133,8 @@ Test challenge 4
     const readmeContent = await fs.readFile(readmePath, 'utf8');
     
     // Verify README contains expected content
-    expect(readmeContent).toContain('CTF Competitions Progress Tracker');
-    expect(readmeContent).toContain('TestCTF');
+    expect(readmeContent).toContain('event Competitions Progress Tracker');
+    expect(readmeContent).toContain('Testevent');
     expect(readmeContent).toContain('Web (2/2 -');
     expect(readmeContent).toContain('Crypto (1/2 -');
     expect(readmeContent).toContain('flag{challenge_one}');
@@ -161,8 +161,8 @@ Test challenge 4
 Challenge with long flag
 `;
     
-    await fs.ensureDir('/mock/repo/root/TestCTF/01_Web/03_long_flag');
-    await fs.writeFile('/mock/repo/root/TestCTF/01_Web/03_long_flag/writeup.md', longFlagWriteup, 'utf8');
+    await fs.ensureDir('/mock/repo/root/Testevent/01_Web/03_long_flag');
+    await fs.writeFile('/mock/repo/root/Testevent/01_Web/03_long_flag/writeup.md', longFlagWriteup, 'utf8');
     
     // Execute the update README command
     await updateReadme();
@@ -175,9 +175,9 @@ Challenge with long flag
     expect(readmeContent).toContain('...</code>');
   });
 
-  it('should handle multiple CTF events with proper hierarchy', async () => {
-    // Add another CTF event
-    await fs.ensureDir('/mock/repo/root/TestCTF/Round2/01_Web');
+  it('should handle multiple events with proper hierarchy', async () => {
+    // Add another event
+    await fs.ensureDir('/mock/repo/root/Testevent/Round2/01_Web');
     
     const round2Challenge = `# 🧩 Round 2 Challenge
 **Category:** Web  
@@ -192,8 +192,8 @@ Challenge with long flag
 Challenge from Round 2
 `;
     
-    await fs.ensureDir('/mock/repo/root/TestCTF/Round2/01_Web/01_round2_challenge');
-    await fs.writeFile('/mock/repo/root/TestCTF/Round2/01_Web/01_round2_challenge/writeup.md', round2Challenge, 'utf8');
+    await fs.ensureDir('/mock/repo/root/Testevent/Round2/01_Web/01_round2_challenge');
+    await fs.writeFile('/mock/repo/root/Testevent/Round2/01_Web/01_round2_challenge/writeup.md', round2Challenge, 'utf8');
     
     // Execute the update README command
     await updateReadme();
@@ -201,7 +201,7 @@ Challenge from Round 2
     // Read the created README
     const readmeContent = await fs.readFile('/mock/repo/root/README.md', 'utf8');
     
-    // Verify multiple CTF events are handled correctly
+    // Verify multiple events are handled correctly
     expect(readmeContent).toContain('Round2');
     expect(readmeContent).toContain('Dave');
     expect(readmeContent).toContain('flag{round2_challenge}');
@@ -250,8 +250,8 @@ Challenge from Round 2
 Challenge with incomplete metadata
 `;
     
-    await fs.ensureDir('/mock/repo/root/TestCTF/01_Web/99_incomplete');
-    await fs.writeFile('/mock/repo/root/TestCTF/01_Web/99_incomplete/writeup.md', incompleteWriteup, 'utf8');
+    await fs.ensureDir('/mock/repo/root/Testevent/01_Web/99_incomplete');
+    await fs.writeFile('/mock/repo/root/Testevent/01_Web/99_incomplete/writeup.md', incompleteWriteup, 'utf8');
     
     // Execute the update README command
     await updateReadme();

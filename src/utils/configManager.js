@@ -11,16 +11,16 @@ const configStore = new Conf({
 });
 
 /**
- * Create a new CTF config object
+ * Create a new event config object
  * @param {Object} options
- * @param {string} options.ctfName The name of the CTF
+ * @param {string} options.eventName The name of the event
  * @param {Object} options.categories Key-value pairs of category numbers and names
- * @param {string|null} options.parentDir Optional parent directory for CTF challenges
+ * @param {string|null} options.parentDir Optional parent directory for event challenges
  * @returns {Object} The config object
  */
-function createConfig({ ctfName, categories, parentDir }) {
+function createConfig({ eventName, categories, parentDir }) {
   return {
-    ctfName,
+    eventName,
     categories,
     parentDir,
     createdAt: new Date().toISOString()
@@ -56,28 +56,35 @@ async function saveConfig(config) {
 }
 
 /**
- * Load configuration from both local file and config store
+ * Load configuration from both local file and config store.
  * @returns {Promise<Object|null>} The configuration object or null if not found
  */
 async function loadConfig() {
   try {
-    // Try to load from local file first
-    const repoRoot = await findRepoRoot();
-    if (repoRoot) {
-      const localConfigPath = path.join(repoRoot, '.flagtrack', 'config.yml');
-      
-      if (await fs.pathExists(localConfigPath)) {
-        const yamlContent = await fs.readFile(localConfigPath, 'utf-8');
-        return YAML.parse(yamlContent);
-      }
-    }
+    const configPath = await getConfigPath();
     
+    if (configPath && await fs.pathExists(configPath)) {
+      const yamlContent = await fs.readFile(configPath, 'utf-8');
+      return YAML.parse(yamlContent);
+    }
+
     // Fall back to config store
     return configStore.get('currentConfig');
   } catch (error) {
     console.error('Error loading config:', error);
     return null;
   }
+}
+
+/**
+ * Resolve the full path to the local config.yml file.
+ * @returns {Promise<string|null>} Path to the config file, or null if not in a git repo
+ */
+async function getConfigPath() {
+  const repoRoot = await findRepoRoot();
+  if (!repoRoot) return null;
+
+  return path.join(repoRoot, '.flagtrack', 'config.yml');
 }
 
 /**
@@ -106,5 +113,6 @@ module.exports = {
   createConfig,
   saveConfig,
   loadConfig,
-  configExists
+  configExists,
+  getConfigPath
 };

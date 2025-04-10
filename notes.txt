@@ -1,0 +1,1 @@
+fiks at create ikke lager kategorier, men heller leser de som finnes. den skal også legge seg selv in i configen.

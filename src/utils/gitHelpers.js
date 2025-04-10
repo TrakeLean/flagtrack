@@ -116,7 +116,7 @@ async function createGitHubActions(repoRoot) {
     await fs.ensureDir(scriptsDir);
     
     // Copy the update-readme.yml workflow file
-    const workflowContent = `name: Update CTF Progress README
+    const workflowContent = `name: Update event Progress README
 on:
   push:
     paths:
@@ -156,7 +156,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "📊 Update CTF progress tracker"
+            git commit -m "📊 Update event progress tracker"
             git push
           fi
 `;

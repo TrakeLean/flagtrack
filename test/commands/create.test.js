@@ -29,7 +29,7 @@ jest.mock('../../src/utils/gitHelpers', () => ({
 
 jest.mock('../../src/utils/configManager', () => ({
   loadConfig: jest.fn().mockResolvedValue({
-    ctfName: 'TestCTF',
+    eventName: 'Testevent',
     structure: {
       Round1: {
         categories: {
@@ -38,13 +38,13 @@ jest.mock('../../src/utils/configManager', () => ({
         }
       }
     },
-    parentDir: 'TestCTF'
+    parentDir: 'Testevent'
   })
 }));
 
 jest.mock('../../src/utils/helpers', () => ({
   slugify: jest.fn(str => str.toLowerCase().replace(/\s+/g, '_')),
-  validateLocation: jest.fn().mockResolvedValue('/mock/repo/root/TestCTF/Round1')
+  getEventContext: jest.fn().mockResolvedValue('/mock/repo/root/Testevent/Round1')
 }));
 
 // Mock console logs
@@ -66,7 +66,7 @@ describe('Create Command', () => {
     // Setup mock filesystem
     mockFs({
       '/mock/repo/root': {
-        'TestCTF': {
+        'Testevent': {
           'Round1': {
             '01_Web': {},
             '02_Crypto': {}
@@ -119,7 +119,7 @@ describe('Create Command', () => {
     await create();
     
     // Verify task directory was created
-    const taskPath = '/mock/repo/root/TestCTF/Round1/01_Web/01_test_challenge';
+    const taskPath = '/mock/repo/root/Testevent/Round1/01_Web/01_test_challenge';
     expect(await fs.pathExists(taskPath)).toBe(true);
     
     // Verify writeup file was created
@@ -143,7 +143,7 @@ describe('Create Command', () => {
 
   it('should handle already existing task folder', async () => {
     // Create a task folder that already exists
-    const existingTaskPath = '/mock/repo/root/TestCTF/Round1/01_Web/01_test_challenge';
+    const existingTaskPath = '/mock/repo/root/Testevent/Round1/01_Web/01_test_challenge';
     await fs.ensureDir(existingTaskPath);
     
     // Mock inquirer responses
@@ -215,7 +215,7 @@ describe('Create Command', () => {
     await create();
     
     // Should create a task folder but skip git operations
-    const taskPath = '/mock/repo/root/TestCTF/Round1/01_Web/01_test_challenge';
+    const taskPath = '/mock/repo/root/Testevent/Round1/01_Web/01_test_challenge';
     expect(await fs.pathExists(taskPath)).toBe(true);
     
     // Verify warning was shown about not being in a git repo

@@ -30,14 +30,14 @@ jest.mock('../../src/utils/gitHelpers', () => ({
 
 jest.mock('../../src/utils/configManager', () => ({
   loadConfig: jest.fn().mockResolvedValue({
-    ctfName: 'TestCTF',
+    eventName: 'Testevent',
     categories: { 1: 'Web', 2: 'Crypto' },
-    parentDir: 'TestCTF'
+    parentDir: 'Testevent'
   })
 }));
 
 jest.mock('../../src/utils/helpers', () => ({
-  validateLocation: jest.fn().mockResolvedValue('/mock/repo/root/TestCTF')
+  getEventContext: jest.fn().mockResolvedValue('/mock/repo/root/Testevent')
 }));
 
 // Mock console logs
@@ -53,7 +53,7 @@ describe('Solve Command', () => {
     // Setup mock filesystem
     mockFs({
       '/mock/repo/root': {
-        'TestCTF': {
+        'Testevent': {
           '01_Web': {
             '01_test_challenge': {
               'writeup.md': `# 🧩 Test Challenge
@@ -134,7 +134,7 @@ _Notes_
     await solve();
     
     // Read the updated writeup file
-    const writeupPath = '/mock/repo/root/TestCTF/01_Web/01_test_challenge/writeup.md';
+    const writeupPath = '/mock/repo/root/Testevent/01_Web/01_test_challenge/writeup.md';
     const writeupContent = await fs.readFile(writeupPath, 'utf-8');
     
     // Verify the writeup was updated with flag, points, and solver
@@ -154,7 +154,7 @@ _Notes_
     const inquirer = require('inquirer');
     
     // First, prepare a completed writeup
-    const writeupPath = '/mock/repo/root/TestCTF/01_Web/01_test_challenge/writeup.md';
+    const writeupPath = '/mock/repo/root/Testevent/01_Web/01_test_challenge/writeup.md';
     const completedWriteup = `# 🧩 Test Challenge
 
 **Category:** Web  

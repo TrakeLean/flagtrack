@@ -5,10 +5,10 @@ const chalk = require('chalk');
 const simpleGit = require('simple-git');
 const { loadConfig } = require('../utils/configManager');
 const { findRepoRoot, isGitRepo, getCurrentBranch, getGitUserName } = require('../utils/gitHelpers');
-const { slugify, validateLocation } = require('../utils/helpers');
+const { slugify, getEventContext } = require('../utils/helpers');
 
 async function create() {
-  console.log(chalk.blue('🧩 Creating a new CTF challenge task'));
+  console.log(chalk.blue('🧩 Creating a new event challenge task'));
   
   try {
     // Load config
@@ -18,11 +18,11 @@ async function create() {
       process.exit(1);
     }
     
-    // Determine current working directory and check if we're in a CTF event directory
+    // Determine current working directory and check if we're in a event directory
     const currentDir = process.cwd();
-    const ctfRoot = config.parentDir ? path.resolve(config.parentDir) : null;
+    const eventRoot = config.parentDir ? path.resolve(config.parentDir) : null;
     
-    // Get the CTF structure from config
+    // Get the event structure from config
     const structure = config.structure || {};
     
     // Get all event names from the structure
@@ -32,20 +32,20 @@ async function create() {
     const currentDirName = path.basename(currentDir);
     let selectedEvent = null;
     
-    // Check if we're in a CTF event directory
+    // Check if we're in a event directory
     const isInEvent = eventNames.includes(currentDirName);
     
     if (isInEvent) {
       // We're already in an event directory
       selectedEvent = currentDirName;
-      console.log(chalk.blue(`Working in CTF event directory: ${selectedEvent}`));
+      console.log(chalk.blue(`Working in event directory: ${selectedEvent}`));
     } else {
-      // We're not in an event directory, check if we're in the CTF root or somewhere else
+      // We're not in an event directory, check if we're in the event root or somewhere else
       const parentDir = path.dirname(currentDir);
       const parentDirName = path.basename(parentDir);
       
-      if (parentDirName === config.ctfName || currentDirName === config.ctfName) {
-        // We're either in the CTF root directory or one level below it
+      if (parentDirName === config.eventName || currentDirName === config.eventName) {
+        // We're either in the event root directory or one level below it
         // Ask user which event to work with
         const { event } = await inquirer.prompt([
           {
@@ -57,8 +57,8 @@ async function create() {
         ]);
         selectedEvent = event;
       } else {
-        // We're not in any recognizable CTF directory
-        console.log(chalk.yellow('⚠️ Not in a recognized CTF directory.'));
+        // We're not in any recognizable event directory
+        console.log(chalk.yellow('⚠️ Not in a recognized event directory.'));
         
         // Ask user which event to work with
         const { event } = await inquirer.prompt([
@@ -127,12 +127,12 @@ async function create() {
     if (isInEvent) {
       // If we're in the event directory, use the current directory
       taskRoot = currentDir;
-    } else if (ctfRoot) {
-      // If we have a CTF root, use that plus the selected event
-      taskRoot = path.join(ctfRoot, selectedEvent);
+    } else if (eventRoot) {
+      // If we have a event root, use that plus the selected event
+      taskRoot = path.join(eventRoot, selectedEvent);
     } else {
-      // Fallback: use current directory plus CTF name plus selected event
-      taskRoot = path.join(currentDir, config.ctfName, selectedEvent);
+      // Fallback: use current directory plus event name plus selected event
+      taskRoot = path.join(currentDir, config.eventName, selectedEvent);
     }
     
     // Ensure the task root directory exists
@@ -150,12 +150,12 @@ async function create() {
   }
 }
 
-async function createTaskStructure(ctfRoot, category, taskName, taskNum, config) {
+async function createTaskStructure(eventRoot, category, taskName, taskNum, config) {
   // Find category number
   const catNum = Object.entries(config.categories)
     .find(([key, value]) => value === category)[0];
   
-  const categoryFolder = path.join(ctfRoot, `${String(catNum).padStart(2, '0')}_${category}`);
+  const categoryFolder = path.join(eventRoot, `${String(catNum).padStart(2, '0')}_${category}`);
   await fs.ensureDir(categoryFolder);
   
   const taskSlug = slugify(taskName);

@@ -14,14 +14,14 @@ jest.mock('../../src/utils/gitHelpers', () => ({
 
 jest.mock('../../src/utils/configManager', () => ({
   loadConfig: jest.fn().mockResolvedValue({
-    ctfName: 'TestCTF',
+    eventName: 'Testevent',
     categories: { 1: 'Web', 2: 'Crypto' },
-    parentDir: 'TestCTF'
+    parentDir: 'Testevent'
   })
 }));
 
 jest.mock('../../src/utils/helpers', () => ({
-  validateLocation: jest.fn().mockResolvedValue('/mock/repo/root/TestCTF')
+  getEventContext: jest.fn().mockResolvedValue('/mock/repo/root/Testevent')
 }));
 
 // Mock console logs
@@ -40,7 +40,7 @@ describe('Leaderboard Command', () => {
         '.flagtrack': {
           'stats': {}
         },
-        'TestCTF': {
+        'Testevent': {
           '01_Web': {
             '01_challenge_one': {
               'writeup.md': `# 🧩 Challenge One
@@ -127,7 +127,7 @@ Test challenge 4
     await leaderboard();
     
     // Verify console output contains leaderboard information
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('CTF LEADERBOARD'));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('event LEADERBOARD'));
     
     // Check for Alice's stats (should have 2 challenges, 400 points)
     const allCalls = console.log.mock.calls.flat().join('\n');
@@ -211,7 +211,7 @@ Test challenge 4
 
   it('should process solvers string correctly', async () => {
     // Add a challenge with multiple solvers
-    await fs.ensureDir('/mock/repo/root/TestCTF/01_Web/03_challenge_multi');
+    await fs.ensureDir('/mock/repo/root/Testevent/01_Web/03_challenge_multi');
     const multiSolverWriteup = `# 🧩 Multi-Solver Challenge
 **Category:** Web  
 **Points:** 250  
@@ -224,7 +224,7 @@ Test challenge 4
 
 Challenge with multiple solvers
 `;
-    await fs.writeFile('/mock/repo/root/TestCTF/01_Web/03_challenge_multi/writeup.md', multiSolverWriteup, 'utf8');
+    await fs.writeFile('/mock/repo/root/Testevent/01_Web/03_challenge_multi/writeup.md', multiSolverWriteup, 'utf8');
     
     // Mock inquirer to select "no export"
     const inquirer = require('inquirer');
@@ -240,7 +240,7 @@ Challenge with multiple solvers
 
   it('should handle "Team effort" solver correctly', async () => {
     // Add a challenge with "Team effort" as solver
-    await fs.ensureDir('/mock/repo/root/TestCTF/02_Crypto/03_team_challenge');
+    await fs.ensureDir('/mock/repo/root/Testevent/02_Crypto/03_team_challenge');
     const teamEffortWriteup = `# 🧩 Team Challenge
 **Category:** Crypto  
 **Points:** 500  
@@ -253,7 +253,7 @@ Challenge with multiple solvers
 
 Challenge solved by the whole team
 `;
-    await fs.writeFile('/mock/repo/root/TestCTF/02_Crypto/03_team_challenge/writeup.md', teamEffortWriteup, 'utf8');
+    await fs.writeFile('/mock/repo/root/Testevent/02_Crypto/03_team_challenge/writeup.md', teamEffortWriteup, 'utf8');
     
     // Mock inquirer to select "no export"
     const inquirer = require('inquirer');

@@ -30,6 +30,6 @@ describe('FlagTrack Package Entry Point', () => {
     expect(flagtrack.utils.git).toHaveProperty('findRepoRoot');
     expect(flagtrack.utils.git).toHaveProperty('getCurrentBranch');
     expect(flagtrack.utils.helpers).toHaveProperty('slugify');
-    expect(flagtrack.utils.helpers).toHaveProperty('validateLocation');
+    expect(flagtrack.utils.helpers).toHaveProperty('getEventContext');
   });
 });

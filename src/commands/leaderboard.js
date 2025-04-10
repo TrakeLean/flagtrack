@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const { findRepoRoot } = require('../utils/gitHelpers');
 const { loadConfig } = require('../utils/configManager');
-const { validateLocation } = require('../utils/helpers');
+const { getEventContext } = require('../utils/helpers');
 
 /**
  * Process solver string to handle team efforts and multiple solvers
@@ -33,7 +33,7 @@ function processSolvers(solverStr) {
  */
 async function leaderboard() {
   try {
-    console.log(chalk.blue('📊 Generating CTF leaderboard'));
+    console.log(chalk.blue('📊 Generating event leaderboard'));
     
     // Load config
     const config = await loadConfig();
@@ -92,31 +92,31 @@ async function leaderboard() {
  */
 async function scanAllChallenges(repoRoot, config) {
   const challenges = [];
-  const ctfRoot = await validateLocation(config);
+  const eventRoot = await getEventContext(config);
   
   // Check if parent directory is specified
   const parentDir = config.parentDir;
-  let competitionsRoot = ctfRoot;
+  let competitionsRoot = eventRoot;
   
   if (parentDir) {
     const parentDirPath = path.join(repoRoot, parentDir);
     if (await fs.pathExists(parentDirPath)) {
-      // Check if we're in a structure with multiple CTFs
+      // Check if we're in a structure with multiple events
       competitionsRoot = parentDirPath;
     }
   }
   
-  // Determine if we're dealing with a single CTF or multiple
+  // Determine if we're dealing with a single event or multiple
   let competitions = {};
   
-  if (competitionsRoot === ctfRoot) {
-    // Single CTF
-    competitions[config.ctfName] = {
-      path: ctfRoot,
+  if (competitionsRoot === eventRoot) {
+    // Single event
+    competitions[config.eventName] = {
+      path: eventRoot,
       categories: {}
     };
   } else {
-    // Multiple CTFs
+    // Multiple events
     try {
       const items = await fs.readdir(competitionsRoot, { withFileTypes: true });
       for (const item of items) {
@@ -293,7 +293,7 @@ function processLeaderboardData(challenges) {
 function displayLeaderboard(solvers, totals) {
   console.log();
   console.log(chalk.yellow.bold('========================================'));
-  console.log(chalk.yellow.bold('🏆           CTF LEADERBOARD          🏆'));
+  console.log(chalk.yellow.bold('🏆           event LEADERBOARD          🏆'));
   console.log(chalk.yellow.bold('========================================'));
   console.log();
   
@@ -410,7 +410,7 @@ async function exportLeaderboard(solvers, totals, format, repoRoot) {
  * @returns {string} Markdown content
  */
 function generateMarkdownLeaderboard(solvers, totals) {
-  let md = `# CTF Leaderboard
+  let md = `# event Leaderboard
 
 > Generated on ${new Date().toISOString().split('T')[0]} by flagtrack
 

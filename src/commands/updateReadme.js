@@ -6,7 +6,7 @@ const { loadConfig } = require('../utils/configManager');
 const { findRepoRoot } = require('../utils/gitHelpers');
 
 async function updateReadme() {
-  console.log(chalk.blue('📊 Generating CTF progress README'));
+  console.log(chalk.blue('📊 Generating event progress README'));
   
   try {
     const repoRoot = await findRepoRoot();
@@ -30,9 +30,9 @@ async function updateReadme() {
   }
 }
 
-async function generateReadme(ctfRoot) {
+async function generateReadme(eventRoot) {
   // Find all competitions and their challenge data
-  const competitions = await findCompetitionData(ctfRoot);
+  const competitions = await findCompetitionData(eventRoot);
   
   // Get current time in Norwegian time (UTC+1)
   const now = new Date();
@@ -44,7 +44,7 @@ async function generateReadme(ctfRoot) {
   const formattedTime = norwegianTime.toISOString().replace('T', ' ').slice(0, 19);
   
   // Generate README content
-  let readme = `# CTF Competitions Progress Tracker
+  let readme = `# event Competitions Progress Tracker
 
 > Last updated: ${formattedTime}
 
@@ -137,7 +137,7 @@ async function generateReadme(ctfRoot) {
   return readme;
 }
 
-async function findCompetitionData(ctfRoot) {
+async function findCompetitionData(eventRoot) {
   const competitions = {};
   const categoryPattern = /^\d{2}_/;
   
@@ -146,9 +146,9 @@ async function findCompetitionData(ctfRoot) {
   const parentDir = config && config.parentDir ? config.parentDir : null;
   
   // First, check if we have a parent directory
-  let competitionsRoot = ctfRoot;
+  let competitionsRoot = eventRoot;
   if (parentDir) {
-    const parentDirPath = path.join(ctfRoot, parentDir);
+    const parentDirPath = path.join(eventRoot, parentDir);
     if (await fs.pathExists(parentDirPath)) {
       competitionsRoot = parentDirPath;
     }
@@ -229,11 +229,11 @@ async function findCompetitionData(ctfRoot) {
               const challengeNum = categoryPattern.test(item.name) ? item.name.slice(0, 2) : '00';
               
               try {
-                const metadata = await extractMetadata(writeupPath, ctfRoot);
+                const metadata = await extractMetadata(writeupPath, eventRoot);
                 
                 category.challenges.push({
                   num: challengeNum,
-                  path: path.relative(ctfRoot, path.join(category.path, item.name)),
+                  path: path.relative(eventRoot, path.join(category.path, item.name)),
                   ...metadata
                 });
               } catch (error) {
@@ -255,7 +255,7 @@ async function findCompetitionData(ctfRoot) {
   return competitions;
 }
 
-async function extractMetadata(writeupPath, ctfRoot) {
+async function extractMetadata(writeupPath, eventRoot) {
   const content = await fs.readFile(writeupPath, 'utf-8');
   
   // Extract challenge name from first heading
@@ -286,7 +286,7 @@ async function extractMetadata(writeupPath, ctfRoot) {
   // If the challenge is completed, try to get the solver from git history
   let gitSolver = null;
   if (isCompleted) {
-    gitSolver = await getFlagSolver(ctfRoot, writeupPath);
+    gitSolver = await getFlagSolver(eventRoot, writeupPath);
   }
   
   // Prefer the git solver if available, otherwise use the file solver

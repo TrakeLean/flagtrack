@@ -10,17 +10,17 @@ const packageInfo = require('../package.json');
 
 program
   .name('flagtrack')
-  .description('CTF Progress Tracker and Task Management Tool')
+  .description('event Progress Tracker and Task Management Tool')
   .version(packageInfo.version);
 
 program
   .command('setup')
-  .description('Set up a new CTF project with required configuration')
+  .description('Set up a new event project with required configuration')
   .action(setup);
 
 program
   .command('create')
-  .description('Create a new CTF challenge task')
+  .description('Create a new event challenge task')
   .action(create);
 
 program
@@ -35,7 +35,7 @@ program
 
 program
   .command('update')
-  .description('Update the README with the current CTF progress')
+  .description('Update the README with the current event progress')
   .action(updateReadme);
 
 program.parse(process.argv);
