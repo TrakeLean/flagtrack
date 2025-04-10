@@ -4,7 +4,7 @@ const path = require('path');
 const chalk = require('chalk');
 const YAML = require('yaml');
 const { createGitHubActions, isGitRepo, findRepoRoot } = require('../utils/gitHelpers');
-const { createConfig, saveConfig, loadConfig, configExists, getConfigPath } = require('../utils/configManager');
+const { initConfig, saveConfig, loadConfig, configExists, getConfigPath } = require('../utils/configManager');
 const { formatDirectoryName, slugify, pickEvent, getEventContext, addCategoriesToSubEvent } = require('../utils/helpers');
 
 async function setup() {
@@ -21,7 +21,11 @@ async function setup() {
   
   // Check if we're in an existing event project directory
   const isExistingProject = await configExists();
-  const createNew = false;
+  const createNewEvent = false;
+  const createNewSubEvent = false;
+
+  const eventName = null
+  const subEventName = null
 
   // If we have an existing config
   if (isExistingProject){
@@ -30,14 +34,13 @@ async function setup() {
 
     // Check if we are in root
     if (!eventContext.depth){
-      const { eventName, subEventName } = await pickEvent(config);
+      eventName, subEventName = await pickEvent(config);
       // If we want to create new main event
       if (eventName == "New"){
-        createNew = true;
+        createNewEvent = true;
+        createNewSubEvent = true;
       } else {
-        // First add event and subevent
-        // Second add categories
-        await addCategoriesToSubEvent(eventName, subEventName, config, configPath);
+        createNewSubEvent = true;
       }
     // We are not in root
     } else {
@@ -45,12 +48,19 @@ async function setup() {
     }
 
   } else {
-    createNew = true;
+    // Setup config structure, github actions
+    const config =  await initConfig();
+    const configPath = await getConfigPath()
+    createNewEvent = true;
+    createNewSubEvent = true;
   }
-  if (createNew){
-    // First add event and subevent
-    // Second add categories
+  // Add new event
+  if (createNewEvent){
     createGitHubActions()
+  }
+  // Add categories
+  if (createNewSubEvent){
+    await addCategoriesToSubEvent(eventName, subEventName, config, configPath);
   }
   // Create categories
 }

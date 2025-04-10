@@ -18,13 +18,32 @@ const configStore = new Conf({
  * @param {string|null} options.parentDir Optional parent directory for event challenges
  * @returns {Object} The config object
  */
-function createConfig({ eventName, categories, parentDir }) {
-  return {
-    eventName,
-    categories,
-    parentDir,
-    createdAt: new Date().toISOString()
+async function initConfig() {
+  const repoRoot = await findRepoRoot();
+
+  if (!repoRoot) {
+    console.error('❌ Could not find repo root.');
+    return;
+  }
+
+  const configDir = path.join(repoRoot, '.flagtrack');
+  const configPath = path.join(configDir, 'config.yml');
+
+  // Create .flagtrack directory if it doesn't exist
+  await fs.ensureDir(configDir);
+
+  // Create initial config content
+  const initialConfig = {
+    events: {}
   };
+
+  const yamlContent = YAML.stringify(initialConfig);
+
+  // Write to config.yml
+  await fs.writeFile(configPath, yamlContent, 'utf-8');
+
+  console.log(`✅ Initialized config at ${configPath}`);
+  return loadConfig()
 }
 
 /**
@@ -110,7 +129,7 @@ async function configExists() {
 }
 
 module.exports = {
-  createConfig,
+  initConfig,
   saveConfig,
   loadConfig,
   configExists,
