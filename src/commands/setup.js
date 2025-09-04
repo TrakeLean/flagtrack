@@ -14,18 +14,18 @@ async function setup() {
   if (!await isGitRepo()) {
     console.log(chalk.yellow('⚠️ Error: Not in a git repository. Some features will not work properly.'));
     console.log(chalk.yellow('Please initialize a git repository with `git init`.'));
-    exit(1);
+    process.exit(1);
   }
   // Store directory deepness
   const eventContext = await getEventContext();
   
   // Check if we're in an existing event project directory
   const isExistingProject = await configExists();
-  const createNewEvent = false;
-  const createNewSubEvent = false;
+  let createNewEvent = false;
+  let createNewSubEvent = false;
 
-  const eventName = null
-  const subEventName = null
+  let eventName = null;
+  let subEventName = null;
 
   // If we have an existing config
   if (isExistingProject){
@@ -34,7 +34,7 @@ async function setup() {
 
     // Check if we are in root
     if (!eventContext.depth){
-      eventName, subEventName = await pickEvent(config);
+      [eventName, subEventName] = await pickEvent(config);
       // If we want to create new main event
       if (eventName == "New"){
         createNewEvent = true;
@@ -49,17 +49,19 @@ async function setup() {
 
   } else {
     // Setup config structure, github actions
-    const config =  await initConfig();
-    const configPath = await getConfigPath()
+    const config = await initConfig();
+    const configPath = await getConfigPath();
     createNewEvent = true;
     createNewSubEvent = true;
   }
   // Add new event
   if (createNewEvent){
-    createGitHubActions()
+    createGitHubActions();
   }
   // Add categories
   if (createNewSubEvent){
+    const config = await loadConfig();
+    const configPath = await getConfigPath();
     await addCategoriesToSubEvent(eventName, subEventName, config, configPath);
   }
   // Create categories

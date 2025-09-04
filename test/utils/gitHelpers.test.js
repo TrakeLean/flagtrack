@@ -10,13 +10,14 @@ const {
 } = require('../../src/utils/gitHelpers');
 
 // Mock simple-git
+const mockGitInstance = {
+  revparse: jest.fn(),
+  branch: jest.fn(),
+  raw: jest.fn()
+};
+
 jest.mock('simple-git', () => {
-  const mockGit = {
-    revparse: jest.fn(),
-    branch: jest.fn(),
-    raw: jest.fn()
-  };
-  return jest.fn(() => mockGit);
+  return jest.fn(() => mockGitInstance);
 });
 
 describe('Git Helpers', () => {
@@ -24,7 +25,7 @@ describe('Git Helpers', () => {
   
   beforeEach(() => {
     // Get the mocked simple-git instance
-    simpleGit = require('simple-git')();
+    simpleGit = mockGitInstance;
     
     // Setup mock filesystem
     mockFs({
